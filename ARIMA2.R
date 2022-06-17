@@ -21,25 +21,37 @@ popURL |>
 # ライブラリの読み込み
 library( ggplot2 )
 
-# 総人口のグラフ
+# 出生数、死亡数のグラフ
 pop_tsibble |>
-  autoplot( Total )
+  autoplot( Birth )
+pop_tsibble |>
+  autoplot( Death )
 
 # ライブラリの読み込み
 library( feasts )
 
 # 自己相関のグラフ
 pop_tsibble |>
-  ACF( Total ) |>
+  ACF( Birth ) |>
+  autoplot()
+pop_tsibble |>
+  ACF( Death ) |>
   autoplot()
 
 # 偏自己相関のグラフ
 pop_tsibble |>
-  PACF( Total ) |>
+  PACF( Birth ) |>
+  autoplot()
+pop_tsibble |>
+  PACF( Death ) |>
   autoplot()
 
 pop_tsibble |>
-  model(STL( Total ~ season( window = Inf ))) |>
+  model(STL( Birth ~ season( window = Inf ))) |>
+  components() |>
+  autoplot()
+pop_tsibble |>
+  model(STL( Death ~ season( window = Inf ))) |>
   components() |>
   autoplot()
 
@@ -51,12 +63,22 @@ pop_tsibble |> head( n = prow_train ) -> pop_train
 
 # ＡＲＩＭＡモデルの推定
 pop_train |>
-  model( arima = ARIMA( Total, ic = "aic" )) -> pop_arima
+  model( arima = ARIMA( Birth, ic = "aic" )) -> pop_arimaB
+pop_train |>
+  model( arima = ARIMA( Death, ic = "aic" )) -> pop_arimaD
 
 # ＡＲＩＭＡによる予測
-pop_arima |>
-forecast( xreg = pop_test$Total,
-          h = "5 years") -> pop_arima_f
+pop_arimaB |>
+forecast( xreg = pop_test$Birth,
+          h = "5 years") -> pop_arimaB_f
+pop_arimaD |>
+  forecast( xreg = pop_test$Death,
+            h = "5 years") -> pop_arimaD_f
+
+# ライブラリの読み込み
+library( dplyr )
+
+pop_test |> rename( "forecast_BD" = Total ) -> pop_arima_f2
 
 # 社人研予測との比較
 # 該当ＵＲＬを変数に格納
@@ -68,28 +90,34 @@ ipssURL |>
   # ＴＳＩＢＢＬＥライブラリに変換
   as_tsibble( index = Year ) -> ipss_test
 
-# ライブラリの読み込み
-library( dplyr )
-
-pop_arima_f |>
+pop_arimaB_f |>
   as.data.frame() |>
-  select( Year, "forecast" = .mean ) |> 
-  inner_join( pop_test, by = "Year" ) |>
-  inner_join( ipss_test, by = "Year" ) -> join_test
+  select( .mean ) -> pop_arima_f2[ ,3 ]
+pop_arimaD_f |>
+  as.data.frame() |>
+  select( .mean ) -> pop_arima_f2[ ,4 ]
+
+pop_arima_f2 |>
+  mutate( Total_BD = lag( forecast_BD + Birth - Death )) -> pop_arima_f2
+pop_train[ 66,2 ] + pop_train[ 66,3 ] - pop_train[ 66,4 ] -> pop_arima_f2[ 1,2 ]
+
+pop_arima_f2[,1:2] |>
+  inner_join( pop_test, by = "Year") |>
+  inner_join( ipss_test, by = "Year") -> join_test2
 
 # ライブラリの読み込み
 library( reshape2 )
 
-join_test |> 
+join_test2 |> 
   melt(id="Year",measure=c( "Total",
-                            "forecast",
+                            "forecast_BD",
                             "DMBM",
                             "DMBH",
                             "DLBM",
-                            "DLBH")) -> join_plot
+                            "DLBH")) -> join_plot2
 
 #描画
-ggplot( join_plot,
+ggplot( join_plot2,
         aes(x = Year,
             y = value,
             shape = variable,
@@ -98,5 +126,13 @@ ggplot( join_plot,
   geom_line() +
   geom_point()
 
-pop_arima_f |> autoplot() +
-  autolayer( pop_test )
+pop_test |>
+  select(Year,Birth) -> pop_testB
+pop_arimaB_f |>
+  autoplot() +
+  autolayer( pop_testB )
+pop_test |>
+  select(Year,Death) -> pop_testD
+pop_arimaD_f |>
+  autoplot() +
+  autolayer( pop_testD )
