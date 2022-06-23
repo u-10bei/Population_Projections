@@ -16,7 +16,8 @@ library( fable )
 popURL |>
   read_csv( show_col_types = FALSE ) |>
   # ＴＳＩＢＢＬＥライブラリに変換
-  as_tsibble( index = Year ) -> pop_tsibble
+  as_tsibble( index = Year ) |>
+  mutate( Dr = Death / Total ) -> pop_tsibble
 
 # ライブラリの読み込み
 library( ggplot2 )
@@ -25,7 +26,7 @@ library( ggplot2 )
 pop_tsibble |>
   autoplot( Birth )
 pop_tsibble |>
-  autoplot( Death )
+  autoplot( Dr )
 
 # ライブラリの読み込み
 library( feasts )
@@ -35,7 +36,7 @@ pop_tsibble |>
   ACF( Birth ) |>
   autoplot()
 pop_tsibble |>
-  ACF( Death ) |>
+  ACF( Dr ) |>
   autoplot()
 
 # 偏自己相関のグラフ
@@ -43,7 +44,7 @@ pop_tsibble |>
   PACF( Birth ) |>
   autoplot()
 pop_tsibble |>
-  PACF( Death ) |>
+  PACF( Dr ) |>
   autoplot()
 
 pop_tsibble |>
@@ -51,7 +52,7 @@ pop_tsibble |>
   components() |>
   autoplot()
 pop_tsibble |>
-  model(STL( Death ~ season( window = Inf ))) |>
+  model(STL( Dr ~ season( window = Inf ))) |>
   components() |>
   autoplot()
 
@@ -65,15 +66,15 @@ pop_tsibble |> head( n = prow_train2 ) -> pop_train2
 pop_train2 |>
   model( arima = ARIMA( Birth, ic = "aic" )) -> pop_arimaB
 pop_train2 |>
-  model( arima = ARIMA( Death, ic = "aic" )) -> pop_arimaD
+  model( arima = ARIMA( Dr, ic = "aic" )) -> pop_arimaDr
 
 # ＡＲＩＭＡによる予測
 pop_arimaB |>
 forecast( xreg = pop_test2$Birth,
           h = "6 years") -> pop_arimaB_f
-pop_arimaD |>
-  forecast( xreg = pop_test2$Death,
-            h = "6 years") -> pop_arimaD_f
+pop_arimaDr |>
+  forecast( xreg = pop_test2$Dr,
+            h = "6 years") -> pop_arimaDr_f
 
 # 社人研予測との比較
 # 該当ＵＲＬを変数に格納
@@ -89,34 +90,35 @@ ipssURL |>
 # ライブラリの読み込み
 library( dplyr )
 
-pop_test2 |> rename( "forecast_BD" = Total ) -> pop_arima_f2
+pop_test2 |> rename( "forecast_BD" = Total ) -> pop_arima_f3
 pop_arimaB_f |>
   as.data.frame() |>
-  select( .mean ) -> pop_arima_f2[,3]
-pop_arimaD_f |>
+  select( .mean ) -> pop_arima_f3[ ,3 ]
+pop_arimaDr_f |>
   as.data.frame() |>
-  select( .mean ) -> pop_arima_f2[,4]
+  select( .mean ) -> pop_arima_f3[ ,11 ]
+pop_arima_f3$forecast_BD * pop_arima_f3$Dr -> pop_arima_f3$Death
 
-pop_arima_f2 |>
-  mutate( forecast_BD = lag( forecast_BD + Birth - Death )) -> pop_arima_f2
+pop_arima_f3 |>
+  mutate( forecast_BD = lag( forecast_BD + Birth - Death )) -> pop_arima_f3
 
-pop_arima_f2[ ,1:2 ] |>
+pop_arima_f3[ ,1:2 ] |>
   inner_join( pop_test, by = "Year") |>
-  inner_join( ipss_test, by = "Year") -> join_test2
+  inner_join( ipss_test, by = "Year") -> join_test3
 
 # ライブラリの読み込み
 library( reshape2 )
 
-join_test2 |> 
+join_test3 |> 
   melt(id="Year",measure=c( "Total",
                             "forecast_BD",
                             "DMBM",
                             "DMBH",
                             "DLBM",
-                            "DLBH")) -> join_plot2
+                            "DLBH")) -> join_plot3
 
 #描画
-ggplot( join_plot2,
+ggplot( join_plot3,
         aes(x = Year,
             y = value,
             shape = variable,
@@ -131,7 +133,7 @@ pop_arimaB_f |>
   autoplot() +
   autolayer( pop_testB )
 pop_test2 |>
-  select(Year,Death) -> pop_testD
-pop_arimaD_f |>
+  select(Year,Dr) -> pop_testDr
+pop_arimaDr_f |>
   autoplot() +
-  autolayer( pop_testD )
+  autolayer( pop_testDr )
