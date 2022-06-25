@@ -43,7 +43,7 @@ pop_tsibble |>
   components() |>
   autoplot()
 
-# 予測データと訓練データ
+# 学習データと予測データ
 5 -> prow_test
 pop_tsibble |> nrow() - prow_test -> prow_train
 pop_tsibble |> tail( n = prow_test ) -> pop_test
@@ -75,7 +75,14 @@ pop_arima_f |>
   as.data.frame() |>
   select( Year, "forecast" = .mean ) |> 
   inner_join( pop_test, by = "Year" ) |>
-  inner_join( ipss_test, by = "Year" ) -> join_test
+  inner_join( ipss_test, by = "Year" ) |>
+  select( Year,
+          Total,
+          forecast,
+          DMBM,
+          DMBH,
+          DLBM,
+          DLBH ) -> join_test
 
 # ライブラリの読み込み
 library( reshape2 )

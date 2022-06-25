@@ -55,7 +55,7 @@ pop_tsibble |>
   components() |>
   autoplot()
 
-# 予測データと訓練データ
+# 学習データと予測データ
 6 -> prow_test2
 pop_tsibble |> nrow() - prow_test2 -> prow_train2
 pop_tsibble |> tail( n = prow_test2 ) -> pop_test2
@@ -100,9 +100,16 @@ pop_arimaD_f |>
 pop_arima_f2 |>
   mutate( forecast_BD = lag( forecast_BD + Birth - Death )) -> pop_arima_f2
 
-pop_arima_f2[ ,1:2 ] |>
-  inner_join( pop_test, by = "Year") |>
-  inner_join( ipss_test, by = "Year") -> join_test2
+pop_arima_f2[ 2:6, 1:2 ] |>
+  inner_join( pop_test2, by = "Year") |>
+  inner_join( ipss_test, by = "Year") |>
+  select( Year,
+          Total,
+          forecast_BD,
+          DMBM,
+          DMBH,
+          DLBM,
+          DLBH ) -> join_test2
 
 # ライブラリの読み込み
 library( reshape2 )
@@ -126,12 +133,13 @@ ggplot( join_plot2,
   geom_point()
 
 pop_test2 |>
-  select(Year,Birth) -> pop_testB
+  select( Year, Birth ) -> pop_testB
 pop_arimaB_f |>
   autoplot() +
   autolayer( pop_testB )
+
 pop_test2 |>
-  select(Year,Death) -> pop_testD
+  select( Year, Death ) -> pop_testD
 pop_arimaD_f |>
   autoplot() +
   autolayer( pop_testD )
