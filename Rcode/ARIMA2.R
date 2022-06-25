@@ -5,8 +5,10 @@
 #install.packages( "urca" )
 #install.packages( "reshape2" )
 
+# 該当リポジトリを変数に格納
+c( "https://raw.githubusercontent.com/u-10bei/Population_Projections/" ) -> repo
 # 該当ＵＲＬを変数に格納
-c( "https://raw.githubusercontent.com/u-10bei/Population_Projections/main/population_jp_year.csv" ) -> popURL
+repo |> paste0( c( "main/data/population_jp_year.csv" )) -> popURL
 
 # ライブラリの読み込み
 library( readr )
@@ -63,9 +65,13 @@ pop_tsibble |> head( n = prow_train2 ) -> pop_train2
 
 # ＡＲＩＭＡモデルの推定
 pop_train2 |>
-  model( arima = ARIMA( Birth, ic = "aic" )) -> pop_arimaB
+  model( arima = ARIMA( Birth,
+                        ic = "aic",
+                        stepwise = FALSE )) -> pop_arimaB
 pop_train2 |>
-  model( arima = ARIMA( Death, ic = "aic" )) -> pop_arimaD
+  model( arima = ARIMA( Death,
+                        ic = "aic",
+                        stepwise = FALSE )) -> pop_arimaD
 
 # ＡＲＩＭＡによる予測
 pop_arimaB |>
@@ -77,7 +83,7 @@ pop_arimaD |>
 
 # 社人研予測との比較
 # 該当ＵＲＬを変数に格納
-c( "https://raw.githubusercontent.com/u-10bei/Population_Projections/main/forecast_ipss.csv" ) -> ipssURL
+repo |> paste0( c( "main/data/forecast_ipss.csv" )) -> ipssURL
 
 # ネット上のファイル読み込み
 ipssURL |>

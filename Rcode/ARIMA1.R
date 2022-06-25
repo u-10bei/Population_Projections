@@ -5,8 +5,10 @@
 #install.packages( "urca" )
 #install.packages( "reshape2" )
 
+# 該当リポジトリを変数に格納
+c( "https://raw.githubusercontent.com/u-10bei/Population_Projections/" ) -> repo
 # 該当ＵＲＬを変数に格納
-c( "https://raw.githubusercontent.com/u-10bei/Population_Projections/main/population_jp_year.csv" ) -> popURL
+repo |> paste0( c( "main/data/population_jp_year.csv" )) -> popURL
 
 # ライブラリの読み込み
 library( readr )
@@ -60,8 +62,8 @@ forecast( xreg = pop_test$Total,
 
 # 社人研予測との比較
 # 該当ＵＲＬを変数に格納
-c( "https://raw.githubusercontent.com/u-10bei/Population_Projections/main/forecast_ipss.csv" ) -> ipssURL
-
+repo |> paste0( c( "main/data/forecast_ipss.csv" )) -> ipssURL
+                
 # ネット上のファイル読み込み
 ipssURL |>
   read_csv( show_col_types = FALSE ) |>
