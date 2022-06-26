@@ -13,13 +13,11 @@ repo |> paste0( c( "main/data/population_jp_year.csv" )) -> popURL
 # ライブラリの読み込み
 library( readr )
 library( fable )
-library( dplyr )
 
 # ネット上のファイル読み込み
 popURL |>
   read_csv( show_col_types = FALSE ) |>
   # ＴＳＩＢＢＬＥライブラリに変換
-  select( Year, Total ) |>
   as_tsibble( index = Year ) -> pop_tsibble
 
 # ライブラリの読み込み
@@ -55,7 +53,10 @@ pop_tsibble |> head( n = prow_train ) -> pop_train
 
 # ＶＡＲモデルの推定
 pop_train |>
-  model( var = VAR( Total, ic = "aic" )) -> pop_var
+  model( var = VAR( Total,
+                    ic = "aic",
+                    stepwise = FALSE )) -> pop_var
+pop_var
 
 # ＶＡＲによる予測
 pop_var |>
@@ -71,6 +72,9 @@ ipssURL |>
   read_csv( show_col_types = FALSE ) |>
   # ＴＳＩＢＢＬＥライブラリに変換
   as_tsibble( index = Year ) -> ipss_test
+
+# ライブラリの読み込み
+library( dplyr )
 
 pop_var_f |>
   as.data.frame() |>
@@ -107,5 +111,5 @@ ggplot( join_plot,
   geom_line() +
   geom_point()
 
-pop_arima_f |> autoplot() +
+pop_var_f |> autoplot() +
   autolayer( pop_test )

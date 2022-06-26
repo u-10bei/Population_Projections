@@ -53,12 +53,13 @@ pop_tsibble |> head( n = prow_train ) -> pop_train
 
 # ＡＲＩＭＡモデルの推定
 pop_train |>
-  model( arima = ARIMA( Total, ic = "aic" )) -> pop_arima
+  model( arima = ARIMA( Total,
+                        ic = "aic",
+                        stepwise = FALSE )) -> pop_arima
 
 # ＡＲＩＭＡによる予測
 pop_arima |>
-forecast( xreg = pop_test$Total,
-          h = "5 years") -> pop_arima_f
+forecast( h = "5 years" ) -> pop_arima_f
 
 # 社人研予測との比較
 # 該当ＵＲＬを変数に格納

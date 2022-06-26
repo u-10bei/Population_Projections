@@ -63,21 +63,36 @@ pop_tsibble |> nrow() - prow_test2 -> prow_train2
 pop_tsibble |> tail( n = prow_test2 ) -> pop_test2
 pop_tsibble |> head( n = prow_train2 ) -> pop_train2
 
-# ＡＲＩＭＡモデルの推定
+# ＶＡＲモデルの推定
 pop_train2 |>
-  model( arima = ARIMA( Birth,
-                        ic = "aic",
-                        stepwise = FALSE )) -> pop_arimaB
+  model( var = VAR( Birth,
+                    ic = "aic",
+                    stepwise = FALSE )) -> pop_var_B
 pop_train2 |>
-  model( arima = ARIMA( Death,
-                        ic = "aic",
-                        stepwise = FALSE )) -> pop_arimaD
+  model( var = VAR( Death,
+                    ic = "aic",
+                    stepwise = FALSE )) -> pop_var_D
 
-# ＡＲＩＭＡによる予測
-pop_arimaB |>
-  forecast( h = "6 years") -> pop_arimaB_f
-pop_arimaD |>
-  forecast( h = "6 years") -> pop_arimaD_f
+# ＶＡＲによる予測
+pop_var_B |>
+  forecast( h = "6 years") -> pop_var_fB
+pop_var_D |>
+  forecast( h = "6 years") -> pop_var_fD
+
+# 出生数、死亡数の合算
+# ライブラリの読み込み
+library( dplyr )
+
+pop_test2 |> rename( "forecast_BD" = Total ) -> pop_var_f2
+pop_var_fB |>
+  as.data.frame() |>
+  select( .mean ) -> pop_var_f2[,3]
+pop_var_fD |>
+  as.data.frame() |>
+  select( .mean ) -> pop_var_f2[,4]
+
+pop_var_f2 |>
+  mutate( forecast_BD = lag( forecast_BD + Birth - Death )) -> pop_var_f2
 
 # 社人研予測との比較
 # 該当ＵＲＬを変数に格納
@@ -89,22 +104,7 @@ ipssURL |>
   # ＴＳＩＢＢＬＥライブラリに変換
   as_tsibble( index = Year ) -> ipss_test
 
-# 出生数、死亡数の合算
-# ライブラリの読み込み
-library( dplyr )
-
-pop_test2 |> rename( "forecast_BD" = Total ) -> pop_arima_f2
-pop_arimaB_f |>
-  as.data.frame() |>
-  select( .mean ) -> pop_arima_f2[,3]
-pop_arimaD_f |>
-  as.data.frame() |>
-  select( .mean ) -> pop_arima_f2[,4]
-
-pop_arima_f2 |>
-  mutate( forecast_BD = lag( forecast_BD + Birth - Death )) -> pop_arima_f2
-
-pop_arima_f2[ 2:6, 1:2 ] |>
+pop_var_f2[ 2:6, 1:2 ] |>
   inner_join( pop_test2, by = "Year") |>
   inner_join( ipss_test, by = "Year") |>
   select( Year,
@@ -114,6 +114,7 @@ pop_arima_f2[ 2:6, 1:2 ] |>
           DMBH,
           DLBM,
           DLBH ) -> join_test2
+join_test2
 
 # ライブラリの読み込み
 library( reshape2 )
