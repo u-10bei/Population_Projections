@@ -5,12 +5,15 @@
 #install.packages( "urca" )
 #install.packages( "reshape2" )
 
+# 該当リポジトリを変数に格納
+c( "https://raw.githubusercontent.com/u-10bei/Population_Projections/" ) -> repo
 # 該当ＵＲＬを変数に格納
-c( "https://raw.githubusercontent.com/u-10bei/Population_Projections/main/population_jp_year.csv" ) -> popURL
+repo |> paste0( c( "main/data/population_jp_year.csv" )) -> popURL
 
 # ライブラリの読み込み
 library( readr )
 library( fable )
+library( dplyr )
 
 # ネット上のファイル読み込み
 popURL |>
@@ -103,14 +106,21 @@ pop_tsibble |> head( n = prow_train2 ) -> pop_train2
 
 # ＡＲＩＭＡモデルの推定
 pop_train2 |>
-  model( arima = ARIMA( Birth, ic = "aic" )) -> pop_arimaB
+  model( arima = ARIMA( Birth,
+                        ic = "aic",
+                        stepwise = FALSE )) -> pop_arimaB
 pop_train2 |>
-  model( arima = ARIMA( Dru14, ic = "aic" )) -> pop_arimaDru
+  model( arima = ARIMA( Dru14,
+                        ic = "aic",
+                        stepwise = FALSE )) -> pop_arimaDru
 pop_train2 |>
-  model( arima = ARIMA( Drm, ic = "aic" )) -> pop_arimaDrm
+  model( arima = ARIMA( Drm,
+                        ic = "aic",
+                        stepwise = FALSE )) -> pop_arimaDrm
 pop_train2 |>
-  model( arima = ARIMA( Dro65, ic = "aic" )) -> pop_arimaDro
-
+  model( arima = ARIMA( Dro65,
+                        ic = "aic",
+                        stepwise = FALSE )) -> pop_arimaDro
 
 # ＡＲＩＭＡによる予測
 pop_arimaB |>
@@ -128,7 +138,7 @@ pop_arimaDro |>
 
 # 社人研予測との比較
 # 該当ＵＲＬを変数に格納
-c( "https://raw.githubusercontent.com/u-10bei/Population_Projections/main/forecast_ipss.csv" ) -> ipssURL
+repo |> paste0( c( "main/data/forecast_ipss.csv" )) -> ipssURL
 
 # ネット上のファイル読み込み
 ipssURL |>
@@ -137,9 +147,6 @@ ipssURL |>
   as_tsibble( index = Year ) -> ipss_test
 
 # 出生数、死亡数の合算
-# ライブラリの読み込み
-library( dplyr )
-
 pop_test2 |> rename( "forecast_BD" = Total ) -> pop_arima_f4
 
 pop_arimaB_f |>

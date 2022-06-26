@@ -105,8 +105,8 @@ pop_arima_fB,pop_arima_fDr
 
 pop_Total = pop_test2.Total +\
             pop_arima_fB -\
-            (pop_test2.Total *\
-             pop_arima_fDr) 
+            ( pop_test2.Total *\
+             pop_arima_fDr ) 
 pop_arima_f3 = pop_Total.shift( 1 ).tail()
 
 # 社人研予測との比較
