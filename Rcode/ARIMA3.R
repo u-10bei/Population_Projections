@@ -20,68 +20,66 @@ popURL |>
   read_csv( show_col_types = FALSE ) |>
   # ＴＳＩＢＢＬＥライブラリに変換
   as_tsibble( index = Year ) |>
-  mutate( Dr = Death / Total ) -> pop_tsibble
+  mutate( Dr = Death / Total ) -> pop_tsibble3
 
 # ライブラリの読み込み
 library( ggplot2 )
 
 # 出生数、死亡率のグラフ
-pop_tsibble |>
+pop_tsibble3 |>
   autoplot( Birth )
-pop_tsibble |>
+pop_tsibble3 |>
   autoplot( Dr )
 
 # ライブラリの読み込み
 library( feasts )
 
 # 自己相関のグラフ
-pop_tsibble |>
+pop_tsibble3 |>
   ACF( Birth ) |>
   autoplot()
-pop_tsibble |>
+pop_tsibble3 |>
   ACF( Dr ) |>
   autoplot()
 
 # 偏自己相関のグラフ
-pop_tsibble |>
+pop_tsibble3 |>
   PACF( Birth ) |>
   autoplot()
-pop_tsibble |>
+pop_tsibble3 |>
   PACF( Dr ) |>
   autoplot()
 
-pop_tsibble |>
+pop_tsibble3 |>
   model(STL( Birth ~ season( window = Inf ))) |>
   components() |>
   autoplot()
-pop_tsibble |>
+pop_tsibble3 |>
   model(STL( Dr ~ season( window = Inf ))) |>
   components() |>
   autoplot()
 
 # 学習データと予測データ
 6 -> prow_test2
-pop_tsibble |> nrow() - prow_test2 -> prow_train2
-pop_tsibble |> tail( n = prow_test2 ) -> pop_test2
-pop_tsibble |> head( n = prow_train2 ) -> pop_train2
+pop_tsibble3 |> nrow() - prow_test2 -> prow_train3
+pop_tsibble3 |> tail( n = prow_test2 ) -> pop_test3
+pop_tsibble3 |> head( n = prow_train3 ) -> pop_train3
 
 # ＡＲＩＭＡモデルの推定
-pop_train2 |>
+pop_train3 |>
   model( arima = ARIMA( Birth,
                         ic = "aic",
                         stepwise = FALSE )) -> pop_arimaB
-pop_train2 |>
+pop_train3 |>
   model( arima = ARIMA( Dr,
                         ic = "aic",
                         stepwise = FALSE )) -> pop_arimaDr
 
 # ＡＲＩＭＡによる予測
 pop_arimaB |>
-  forecast( xreg = pop_test2$Birth,
-          h = "6 years") -> pop_arimaB_f
+  forecast( h = "6 years") -> pop_arimaB_f
 pop_arimaDr |>
-  forecast( xreg = pop_test2$Dr,
-            h = "6 years") -> pop_arimaDr_f
+  forecast( h = "6 years") -> pop_arimaDr_f
 
 # 社人研予測との比較
 # 該当ＵＲＬを変数に格納
@@ -94,7 +92,7 @@ ipssURL |>
   as_tsibble( index = Year ) -> ipss_test
 
 # 出生数、死亡数の合算
-pop_test2 |> rename( "forecast_BD" = Total ) -> pop_arima_f3
+pop_test3 |> rename( "forecast_BD" = Total ) -> pop_arima_f3
 
 pop_arimaB_f |>
   as.data.frame() |>
@@ -107,7 +105,7 @@ pop_arima_f3 |>
           forecast_BD = lag( forecast_BD + Birth - Death )) -> pop_arima_f3
 
 pop_arima_f3[ ,1:2 ] |>
-  inner_join( pop_test, by = "Year") |>
+  inner_join( pop_test3, by = "Year") |>
   inner_join( ipss_test, by = "Year") |>
   select( Year,
           Total,
@@ -138,12 +136,12 @@ ggplot( join_plot3,
   geom_line() +
   geom_point()
 
-pop_test2 |>
+pop_test3 |>
   select(Year,Birth) -> pop_testB
 pop_arimaB_f |>
   autoplot() +
   autolayer( pop_testB )
-pop_test2 |>
+pop_test3 |>
   select(Year,Dr) -> pop_testDr
 pop_arimaDr_f |>
   autoplot() +

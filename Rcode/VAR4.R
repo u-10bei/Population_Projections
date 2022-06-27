@@ -104,33 +104,63 @@ pop_tsibble4 |> nrow() - prow_test2 -> prow_train4
 pop_tsibble4 |> tail( n = prow_test2 ) -> pop_test4
 pop_tsibble4 |> head( n = prow_train4 ) -> pop_train4
 
-# ＡＲＩＭＡモデルの推定
+# ＶＡＲモデルの推定
 pop_train4 |>
-  model( arima = ARIMA( Birth,
-                        ic = "aic",
-                        stepwise = FALSE )) -> pop_arimaB
+  model( var = VAR( Birth,
+                    lag.max = 10,                    
+                    ic = "aic",
+                    stepwise = FALSE )) -> pop_varB
 pop_train4 |>
-  model( arima = ARIMA( Dru14,
-                        ic = "aic",
-                        stepwise = FALSE )) -> pop_arimaDru
+  model( var = VAR( Dru14,
+                    lag.max = 10,                    
+                    ic = "aic",
+                    stepwise = FALSE )) -> pop_varDru
 pop_train4 |>
-  model( arima = ARIMA( Drm,
-                        ic = "aic",
-                        stepwise = FALSE )) -> pop_arimaDrm
+  model( var = VAR( Drm,
+                    lag.max = 10,                    
+                    ic = "aic",
+                    stepwise = FALSE )) -> pop_varDrm
 pop_train4 |>
-  model( arima = ARIMA( Dro65,
-                        ic = "aic",
-                        stepwise = FALSE )) -> pop_arimaDro
+  model( var = VAR( Dro65,
+                    lag.max = 10,                    
+                    ic = "aic",
+                    stepwise = FALSE )) -> pop_varDro
 
-# ＡＲＩＭＡによる予測
-pop_arimaB |>
-  forecast( h = "6 years") -> pop_arimaB_f
-pop_arimaDru |>
-  forecast( h = "6 years") -> pop_arimaDru_f
-pop_arimaDrm |>
-  forecast( h = "6 years") -> pop_arimaDrm_f
-pop_arimaDro |>
-  forecast( h = "6 years") -> pop_arimaDro_f
+# ＶＡＲによる予測
+pop_varB |>
+  forecast( h = "6 years") -> pop_varB_f
+pop_varDru |>
+  forecast( h = "6 years") -> pop_varDru_f
+pop_varDrm |>
+  forecast( h = "6 years") -> pop_varDrm_f
+pop_varDro |>
+  forecast( h = "6 years") -> pop_varDro_f
+
+# 出生数、死亡数の合算
+pop_test4 |> rename( "forecast_BD" = Total ) -> pop_var_f4
+
+pop_varB_f |>
+  as.data.frame() |>
+  select( .mean ) -> pop_var_f4[ ,3 ]
+pop_varDru_f |>
+  as.data.frame() |>
+  select( .mean ) -> pop_var_f4[ ,12 ]
+pop_varDrm_f |>
+  as.data.frame() |>
+  select( .mean ) -> pop_var_f4[ ,13 ]
+pop_varDro_f |>
+  as.data.frame() |>
+  select( .mean ) -> pop_var_f4[ ,14 ]
+
+pop_var_f4 |>
+  mutate( Du14 = Tu14  * Dru14,
+          Dm = Tm * Drm,
+          Do65 = To65 * Dro65,
+          forecast_BD = lag( forecast_BD +
+                               Birth -
+                               Du14 -
+                               Dm - 
+                               Do65 )) -> pop_var_f4
 
 # 社人研予測との比較
 # 該当ＵＲＬを変数に格納
@@ -142,32 +172,7 @@ ipssURL |>
   # ＴＳＩＢＢＬＥライブラリに変換
   as_tsibble( index = Year ) -> ipss_test
 
-# 出生数、死亡数の合算
-pop_test4 |> rename( "forecast_BD" = Total ) -> pop_arima_f4
-
-pop_arimaB_f |>
-  as.data.frame() |>
-  select( .mean ) -> pop_arima_f4[ ,3 ]
-pop_arimaDru_f |>
-  as.data.frame() |>
-  select( .mean ) -> pop_arima_f4[ ,12 ]
-pop_arimaDrm_f |>
-  as.data.frame() |>
-  select( .mean ) -> pop_arima_f4[ ,13 ]
-pop_arimaDro_f |>
-  as.data.frame() |>
-  select( .mean ) -> pop_arima_f4[ ,14 ]
-pop_arima_f4 |>
-  mutate( Du14 = Tu14  * Dru14,
-          Dm = Tm * Drm,
-          Do65 = To65 * Dro65,
-          forecast_BD = lag( forecast_BD +
-                               Birth -
-                               Du14 -
-                               Dm - 
-                               Do65 )) -> pop_arima_f4
-
-pop_arima_f4[ 2:6, 1:2 ] |>
+pop_var_f4[ 2:6, 1:2 ] |>
   inner_join( pop_test4, by = "Year") |>
   inner_join( ipss_test, by = "Year") |>
   select( Year,
@@ -177,6 +182,7 @@ pop_arima_f4[ 2:6, 1:2 ] |>
           DMBH,
           DLBM,
           DLBH ) -> join_test4
+join_test4
 
 # ライブラリの読み込み
 library( reshape2 )
@@ -201,21 +207,18 @@ ggplot( join_plot4,
 
 pop_test4 |>
   select( Year, Birth ) -> pop_testB
-pop_arimaB_f |>
+pop_varB_f |>
   autoplot() +
   autolayer( pop_testB )
 pop_test4 |>
-  select( Year, Dru14 ) -> pop_testDru
-pop_arimaDru_f |>
-  autoplot() +
-  autolayer( pop_testDru )
+  select( Year, Dru14 ) -> pop_testDu
+pop_varDru_f |> autoplot() +
+  autolayer( pop_testDu )
 pop_test4 |>
-  select( Year, Drm ) -> pop_testDrm
-pop_arimaDrm_f |>
-  autoplot() +
-  autolayer( pop_testDrm )
+  select( Year, Drm ) -> pop_testDm
+pop_varDrm_f |> autoplot() +
+  autolayer( pop_testDm )
 pop_test4 |>
-  select( Year, Dro65 ) -> pop_testDro
-pop_arimaDro_f |>
-  autoplot() +
-  autolayer( pop_testDro )
+  select( Year, Dro65 ) -> pop_testDo
+pop_varDro_f |> autoplot() +
+  autolayer( pop_testDo )
