@@ -13,21 +13,23 @@ repo |> paste0( c( "main/data/population_jp_year.csv" )) -> popURL
 # ライブラリの読み込み
 library( readr )
 library( fable )
+library( dplyr )
 
 # ネット上のファイル読み込み
 popURL |>
   read_csv( show_col_types = FALSE ) |>
   # ＴＳＩＢＢＬＥライブラリに変換
-  as_tsibble( index = Year ) -> pop_tsibble
+  as_tsibble( index = Year ) |>
+  mutate( Dr = Death / Total ) -> pop_tsibble
 
 # ライブラリの読み込み
 library( ggplot2 )
 
-# 出生数、死亡数のグラフ
+# 出生数、死亡率のグラフ
 pop_tsibble |>
   autoplot( Birth )
 pop_tsibble |>
-  autoplot( Death )
+  autoplot( Dr )
 
 # ライブラリの読み込み
 library( feasts )
@@ -37,7 +39,7 @@ pop_tsibble |>
   ACF( Birth ) |>
   autoplot()
 pop_tsibble |>
-  ACF( Death ) |>
+  ACF( Dr ) |>
   autoplot()
 
 # 偏自己相関のグラフ
@@ -45,7 +47,7 @@ pop_tsibble |>
   PACF( Birth ) |>
   autoplot()
 pop_tsibble |>
-  PACF( Death ) |>
+  PACF( Dr ) |>
   autoplot()
 
 pop_tsibble |>
@@ -53,7 +55,7 @@ pop_tsibble |>
   components() |>
   autoplot()
 pop_tsibble |>
-  model(STL( Death ~ season( window = Inf ))) |>
+  model(STL( Dr ~ season( window = Inf ))) |>
   components() |>
   autoplot()
 
@@ -66,35 +68,33 @@ pop_tsibble |> head( n = prow_train2 ) -> pop_train2
 # ＶＡＲモデルの推定
 pop_train2 |>
   model( var = VAR( Birth,
-                    lag.max = 10,
+                    lag.max = 10,                    
                     ic = "aic",
                     stepwise = FALSE )) -> pop_varB
 pop_train2 |>
-  model( var = VAR( Death,
-                    lag.max = 10,
+  model( var = VAR( Dr,
+                    lag.max = 10,                    
                     ic = "aic",
-                    stepwise = FALSE )) -> pop_varD
+                    stepwise = FALSE )) -> pop_varDr
 
 # ＶＡＲによる予測
 pop_varB |>
   forecast( h = "6 years") -> pop_varB_f
-pop_varD |>
-  forecast( h = "6 years") -> pop_varD_f
+pop_varDr |>
+  forecast( h = "6 years") -> pop_varDr_f
 
 # 出生数、死亡数の合算
-# ライブラリの読み込み
-library( dplyr )
+pop_test2 |> rename( "forecast_BD" = Total ) -> pop_var_f3
 
-pop_test2 |> rename( "forecast_BD" = Total ) -> pop_var_f2
 pop_varB_f |>
   as.data.frame() |>
-  select( .mean ) -> pop_var_f2[,3]
-pop_varD_f |>
+  select( .mean ) -> pop_var_f3[ ,3 ]
+pop_varDr_f |>
   as.data.frame() |>
-  select( .mean ) -> pop_var_f2[,4]
-
-pop_var_f2 |>
-  mutate( forecast_BD = lag( forecast_BD + Birth - Death )) -> pop_var_f2
+  select( "Dr" = .mean ) -> pop_var_f3[ ,11 ]
+pop_var_f3 |>
+  mutate( Death = forecast_BD * Dr,
+          forecast_BD = lag( forecast_BD + Birth - Death )) -> pop_var_f3
 
 # 社人研予測との比較
 # 該当ＵＲＬを変数に格納
@@ -106,7 +106,7 @@ ipssURL |>
   # ＴＳＩＢＢＬＥライブラリに変換
   as_tsibble( index = Year ) -> ipss_test
 
-pop_var_f2[ 2:6, 1:2 ] |>
+pop_var_f3[ 2:6, 1:2 ] |>
   inner_join( pop_test2, by = "Year") |>
   inner_join( ipss_test, by = "Year") |>
   select( Year,
@@ -146,7 +146,7 @@ pop_varB_f |>
   autolayer( pop_testB )
 
 pop_test2 |>
-  select( Year, Death ) -> pop_testD
-pop_varD_f |>
+  select( Year, Dr ) -> pop_testDr
+pop_varDr_f |>
   autoplot() +
-  autolayer( pop_testD )
+  autolayer( pop_testDr )

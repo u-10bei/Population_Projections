@@ -54,14 +54,14 @@ pop_tsibble |> head( n = prow_train ) -> pop_train
 # ＶＡＲモデルの推定
 pop_train |>
   model( var = VAR( Total,
+                    lag.max = 10,
                     ic = "aic",
                     stepwise = FALSE )) -> pop_var
 pop_var
 
 # ＶＡＲによる予測
 pop_var |>
-forecast( xreg = pop_test$Total,
-          h = "5 years") -> pop_var_f
+forecast( h = "5 years") -> pop_var_f
 
 # 社人研予測との比較
 # 該当ＵＲＬを変数に格納
@@ -113,3 +113,4 @@ ggplot( join_plot,
 
 pop_var_f |> autoplot() +
   autolayer( pop_test )
+
