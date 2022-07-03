@@ -6,12 +6,12 @@
 #install.packages( "reshape2" )
 
 # 該当リポジトリを変数に格納
-c( "https://raw.githubusercontent.com/u-10bei/Population_Projections/" ) ->
-repo
+repo = 
+  c( "https://raw.githubusercontent.com/u-10bei/Population_Projections/" )
 
 # 人口推計に使うデータの格納場所を変数に格納
-c( "main/data/population_jp_year.csv" ) ->
-popURL
+popURL = 
+  c( "main/data/population_jp_year.csv" )
 
 # ライブラリの読み込み
 library( readr )
@@ -49,18 +49,16 @@ pop_tsibble |>
   autoplot()
 
 # 学習データと予測データ
-5 -> prow_test
-pop_tsibble |>
-  nrow() - prow_test ->
-prow_train
+prow_test = 5
+prow_train = nrow( pop_tsibble ) - prow_test
 
 pop_tsibble |>
   tail( n = prow_test ) ->
-pop_test
+  pop_test
 
 pop_tsibble |>
   head( n = prow_train ) ->
-pop_train
+  pop_train
 
 # ＡＲＩＭＡモデルの推定
 pop_train |>
@@ -77,15 +75,13 @@ pop_arima_f
 
 # 社人研予測との比較
 # 該当ＵＲＬを変数に格納
+ipssURL = 
+  c( "main/data/forecast_ipss.csv" )
+
 repo |>
-  paste0( c( "main/data/forecast_ipss.csv" )) ->
-ipssURL
-                
-# ネット上のファイル読み込み
-ipssURL |>
-  read_csv( show_col_types = FALSE ) |>
-  # ＴＳＩＢＢＬＥライブラリに変換
-  as_tsibble( index = Year ) ->
+  paste0( ipssURL ) |>                    # 読み込むアドレスの編集
+  read_csv( show_col_types = FALSE ) |>   # ネット上のファイル読み込み
+  as_tsibble( index = Year ) ->           # ＴＳＩＢＢＬＥライブラリに変換
 ipss_test
 
 # ライブラリの読み込み
@@ -93,9 +89,9 @@ library( dplyr )
 
 pop_arima_f |>
   as.data.frame() |>
-  select( Year, "forecast" = .mean ) |> 
+  select( Year, "forecast" = .mean ) |>
   inner_join( pop_test, by = "Year" ) |>
-  inner_join( ipss_test, by = "Year" ) |>
+  inner_join( ipss_test, by = "Year" )|>
   select( Year,
           Total,
           forecast,
@@ -104,26 +100,25 @@ pop_arima_f |>
           DLBM,
           DLBH ) ->
 join_test
+join_test
 
 # ライブラリの読み込み
 library( reshape2 )
 
+# 描画
 join_test |> 
-  melt(id="Year",measure=c( "Total",
-                            "forecast",
-                            "DMBM",
-                            "DMBH",
-                            "DLBM",
-                            "DLBH")) ->
-join_plot
-
-#描画
-ggplot( join_plot,
-        aes( x = Year,
-             y = value,
-             shape = variable,
-             colour = variable,
-             group = variable )) +
+  melt(id = "Year",
+       measure = c( "Total",
+                    "forecast",
+                    "DMBM",
+                    "DMBH",
+                    "DLBM",
+                    "DLBH")) |>
+  ggplot( aes( x = Year,
+               y = value,
+               shape = variable,
+               colour = variable,
+               group = variable )) +
   geom_line() +
   geom_point()
 
