@@ -6,19 +6,22 @@
 #install.packages( "reshape2" )
 
 # 該当リポジトリを変数に格納
-c( "https://raw.githubusercontent.com/u-10bei/Population_Projections/" ) -> repo
-# 該当ＵＲＬを変数に格納
-repo |> paste0( c( "main/data/population_jp_year.csv" )) -> popURL
+c( "https://raw.githubusercontent.com/u-10bei/Population_Projections/" ) ->
+repo
+
+# 人口推計に使うデータの格納場所を変数に格納
+c( "main/data/population_jp_year.csv" ) ->
+popURL
 
 # ライブラリの読み込み
 library( readr )
 library( fable )
 
-# ネット上のファイル読み込み
-popURL |>
-  read_csv( show_col_types = FALSE ) |>
-  # ＴＳＩＢＢＬＥライブラリに変換
-  as_tsibble( index = Year ) -> pop_tsibble
+repo |>
+  paste0( popURL ) |>                     # 読み込むアドレスの編集
+  read_csv( show_col_types = FALSE ) |>   # ネット上のファイル読み込み
+  as_tsibble( index = Year ) ->           # ＴＳＩＢＢＬＥライブラリに変換
+pop_tsibble
 
 # ライブラリの読み込み
 library( ggplot2 )
@@ -47,29 +50,43 @@ pop_tsibble |>
 
 # 学習データと予測データ
 5 -> prow_test
-pop_tsibble |> nrow() - prow_test -> prow_train
-pop_tsibble |> tail( n = prow_test ) -> pop_test
-pop_tsibble |> head( n = prow_train ) -> pop_train
+pop_tsibble |>
+  nrow() - prow_test ->
+prow_train
+
+pop_tsibble |>
+  tail( n = prow_test ) ->
+pop_test
+
+pop_tsibble |>
+  head( n = prow_train ) ->
+pop_train
 
 # ＡＲＩＭＡモデルの推定
 pop_train |>
-  model( arima = ARIMA( Total,
-                        ic = "aic",
-                        stepwise = FALSE )) -> pop_arima
+  model(
+    arima = ARIMA( Total,
+                   ic = "aic",
+                   stepwise = FALSE )) ->
+pop_arima
 
 # ＡＲＩＭＡによる予測
 pop_arima |>
-forecast( h = "5 years" ) -> pop_arima_f
+  forecast( h = "5 years" ) ->
+pop_arima_f
 
 # 社人研予測との比較
 # 該当ＵＲＬを変数に格納
-repo |> paste0( c( "main/data/forecast_ipss.csv" )) -> ipssURL
+repo |>
+  paste0( c( "main/data/forecast_ipss.csv" )) ->
+ipssURL
                 
 # ネット上のファイル読み込み
 ipssURL |>
   read_csv( show_col_types = FALSE ) |>
   # ＴＳＩＢＢＬＥライブラリに変換
-  as_tsibble( index = Year ) -> ipss_test
+  as_tsibble( index = Year ) ->
+ipss_test
 
 # ライブラリの読み込み
 library( dplyr )
@@ -85,7 +102,8 @@ pop_arima_f |>
           DMBM,
           DMBH,
           DLBM,
-          DLBH ) -> join_test
+          DLBH ) ->
+join_test
 
 # ライブラリの読み込み
 library( reshape2 )
@@ -96,17 +114,19 @@ join_test |>
                             "DMBM",
                             "DMBH",
                             "DLBM",
-                            "DLBH")) -> join_plot
+                            "DLBH")) ->
+join_plot
 
 #描画
 ggplot( join_plot,
-        aes(x = Year,
-            y = value,
-            shape = variable,
-            colour = variable,
-            group = variable )) +
+        aes( x = Year,
+             y = value,
+             shape = variable,
+             colour = variable,
+             group = variable )) +
   geom_line() +
   geom_point()
 
-pop_arima_f |> autoplot() +
+pop_arima_f |>
+  autoplot() +
   autolayer( pop_test )
