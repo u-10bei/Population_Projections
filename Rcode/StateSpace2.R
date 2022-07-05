@@ -113,7 +113,7 @@ forecast_trend_D |>
 pop_SS_f2 |>
   mutate( forecast_BD = lag( forecast_BD + Birth - Death )) ->
 pop_SS_f2
-pop_ss_f2
+pop_SS_f2
 
 # 社人研予測との比較
 # 該当ＵＲＬを変数に格納
