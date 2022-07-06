@@ -54,24 +54,50 @@ prow_train = nrow( pop_tsibble ) - prow_test
 
 pop_tsibble |>
   tail( n = prow_test ) ->
-  pop_test
+pop_test
 
 pop_tsibble |>
   head( n = prow_train ) ->
-  pop_train
+pop_train
 
-# ＡＲＩＭＡモデルの推定
+# ライブラリの読み込み
+library( dplyr )
+
+# ＡＩＣが自動推定＋２までのモデルを候補として列挙
+capture.output({
+  pop_train |>
+    model(
+      arima = ARIMA( Total,
+                     ic = "aic",
+                     trace = TRUE,
+                     stepwise = FALSE ))
+  }) |>
+  read_table( col_names = c( "symbol", "AIC" ),
+              col_types = "cn",
+              comment = "<" ) |>
+  na.omit() ->
+trace_arima
+
+max_AIC = min( trace_arima$AIC ) + 2
+trace_arima |>
+  filter( AIC < max_AIC ) 
+
+# 予測
 pop_train |>
   model(
-    arima = ARIMA( Total,
-                   ic = "aic",
-                   stepwise = FALSE )) ->
-pop_arima
-
-# ＡＲＩＭＡによる予測
-pop_arima |>
+    arima120 = ARIMA( Total ~ 0 + pdq( 1, 2, 0 )),
+    arima220 = ARIMA( Total ~ 0 + pdq( 2, 2, 0 )), 
+    arima021 = ARIMA( Total ~ 0 + pdq( 0, 2, 1 )),
+    arima121 = ARIMA( Total ~ 0 + pdq( 1, 2, 1 )),
+    arima221 = ARIMA( Total ~ 0 + pdq( 2, 2, 1 )),
+    arima022 = ARIMA( Total ~ 0 + pdq( 0, 2, 2 ))) |>
   forecast( h = "5 years" ) ->
 pop_arima_f
+pop_arima_f |>
+  filter( Year == 2020 ) 
+pop_test |>
+  select( Year, Total ) |>
+  tail( 1 )
 
 # 社人研予測との比較
 # 該当ＵＲＬを変数に格納
@@ -84,11 +110,9 @@ repo |>
   as_tsibble( index = Year ) ->           # ＴＳＩＢＢＬＥライブラリに変換
 ipss_test
 
-# ライブラリの読み込み
-library( dplyr )
-
 pop_arima_f |>
   as.data.frame() |>
+  filter( .model == "arima221" ) |>
   select( Year, "forecast" = .mean ) |>
   inner_join( pop_test, by = "Year" ) |>
   inner_join( ipss_test, by = "Year" )|>
@@ -123,5 +147,6 @@ join_test |>
   geom_point()
 
 pop_arima_f |>
+  filter( .model == "arima221" ) |>
   autoplot() +
   autolayer( pop_test )

@@ -72,47 +72,115 @@ pop_tsibble |>
   head( n = prow_train2 ) ->
 pop_train2
 
-# ＡＲＩＭＡモデルの推定
-pop_train2 |>
-  model(
-    arimaB = ARIMA( Birth,
-                   ic = "aic",
-                   stepwise = FALSE )) ->
-pop_arimaB
+# ライブラリの読み込み
+library( dplyr )
+
+# ＡＩＣが自動推定＋２までのモデルを候補として列挙
+capture.output({
+  pop_train2 |>
+    model(
+      arima = ARIMA( Birth,
+                     ic = "aic",
+                     trace = TRUE,
+                     stepwise = FALSE ))
+}) |>
+  read_table( col_names = c( "symbol", "AIC" ),
+              col_types = "cn",
+              comment = "<" ) |>
+  na.omit() ->
+trace_arimaB
+
+max_AICB = min( trace_arimaB$AIC ) + 2
+trace_arimaB |>
+  filter( AIC < max_AICB ) 
 
 pop_train2 |>
   model(
-    arimaD = ARIMA( Death,
-                    ic = "aic",
-                    stepwise = FALSE )) ->
-pop_arimaD
+    arimaB012 = ARIMA( Birth ~ 0 + pdq( 0, 1, 2 )),    
+    arimaB110 = ARIMA( Birth ~ 0 + pdq( 1, 1, 0 )),
+    arimaB310 = ARIMA( Birth ~ 0 + pdq( 3, 1, 0 )),
+    arimaB410 = ARIMA( Birth ~ 0 + pdq( 4, 1, 0 )),
+    arimaB510 = ARIMA( Birth ~ 0 + pdq( 5, 1, 0 )),
+    arimaB211 = ARIMA( Birth ~ 0 + pdq( 2, 1, 1 )), 
+    arimaB311 = ARIMA( Birth ~ 0 + pdq( 3, 1, 1 )),
+    arimaB411 = ARIMA( Birth ~ 0 + pdq( 4, 1, 1 ))) ->
+pop_arimaB
 
 # ＡＲＩＭＡによる予測
 pop_arimaB |>
   forecast( h = "6 years") ->
 pop_arimaB_f
+pop_arimaB_f |>
+  filter( Year == 2020 ) 
+pop_test2 |>
+  select( Year, Birth ) |>
+  tail( 1 )
 
+# ＡＩＣが自動推定＋２までのモデルを候補として列挙
+capture.output({
+  pop_train2 |>
+    model(
+      arima = ARIMA( Death,
+                     ic = "aic",
+                     trace = TRUE,
+                     stepwise = FALSE ))
+}) |>
+  read_table( col_names = c( "symbol", "AIC" ),
+              col_types = "cn",
+              comment = "<" ) |>
+  na.omit() ->
+trace_arimaD
+
+max_AICD = min( trace_arimaD$AIC ) + 2
+trace_arimaD |>
+  filter( AIC < max_AICD ) 
+
+pop_train2 |>
+  model(
+    arima = ARIMA( Death,
+                   ic = "aic",
+                   trace = TRUE,
+                   stepwise = FALSE )) ->
+pop_arimaD_t
+
+pop_train2 |>
+  model(
+    arimaD221 = ARIMA( Death ~ 0 + pdq( 2, 2, 1 )),    
+    arimaD321 = ARIMA( Death ~ 0 + pdq( 3, 2, 1 )),
+    arimaD022 = ARIMA( Death ~ 0 + pdq( 0, 2, 2 )),
+    arimaD122 = ARIMA( Death ~ 0 + pdq( 1, 2, 2 )),
+    arimaD222 = ARIMA( Death ~ 0 + pdq( 2, 2, 2 )),
+    arimaD023 = ARIMA( Death ~ 0 + pdq( 0, 2, 3 )),
+    arimaD123 = ARIMA( Death ~ 0 + pdq( 1, 2, 3 )),
+    arimaD024 = ARIMA( Death ~ 0 + pdq( 0, 2, 4 ))) ->
+pop_arimaD
+
+# ＡＲＩＭＡによる予測
 pop_arimaD |>
   forecast( h = "6 years") ->
 pop_arimaD_f
+pop_arimaD_f |>
+  filter( Year == 2020 ) 
+pop_test2 |>
+  select( Year, Death ) |>
+  tail( 1 )
 
 # 出生数、死亡数の合算
-# ライブラリの読み込み
-library( dplyr )
-
 pop_test2 |>
   rename( "forecast_BD" = Total ) ->
 pop_arima_f2
 
 pop_arimaB_f |>
   as.data.frame() |>
+  filter( .model == "arimaB510" ) |>
   select( .mean ) ->
-pop_arima_f2[,3]
+pop_arima_f2[, 3 ]
 
 pop_arimaD_f |>
   as.data.frame() |>
+  filter( .model == "arimaD221" ) |>
   select( .mean ) ->
-pop_arima_f2[,4]
+pop_arima_f2[, 4 ]
 
 pop_arima_f2 |>
   mutate( forecast_BD = lag( forecast_BD + Birth - Death )) ->
@@ -167,6 +235,7 @@ pop_test2 |>
 pop_testB
 
 pop_arimaB_f |>
+  filter( .model == "arimaB510" ) |>
   autoplot() +
   autolayer( pop_testB )
 
@@ -175,5 +244,6 @@ pop_test2 |>
 pop_testD
 
 pop_arimaD_f |>
+  filter( .model == "arimaD221" ) |>
   autoplot() +
   autolayer( pop_testD )
