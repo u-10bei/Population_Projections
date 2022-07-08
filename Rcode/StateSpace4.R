@@ -110,13 +110,13 @@ SSModel( H = NA,
          pop_train4$Drm ~ SSMtrend( degree = 2,
                                       Q = list( NA, NA ))) |>
   fitSSM( inits = c( 1, 1, 1 )) ->        # パラメタ推定
-  fit_trend_Drm
+fit_trend_Drm
 
 SSModel( H = NA,
          pop_train4$Dro65 ~ SSMtrend( degree = 2,
                                       Q = list( NA, NA ))) |>
   fitSSM( inits = c( 1, 1, 1 )) ->        # パラメタ推定
-  fit_trend_Dro
+fit_trend_Dro
 
 # 将来予測の結果と予測区間
 fit_trend_B$model |>
@@ -135,13 +135,13 @@ fit_trend_Drm$model |>
   predict( interval = "prediction",
            n.ahead = 6 ) |>
   as.data.frame() ->
-  forecast_trend_Drm
+forecast_trend_Drm
 
 fit_trend_Dro$model |>
   predict( interval = "prediction",
            n.ahead = 6 ) |>
   as.data.frame() ->
-  forecast_trend_Dro
+forecast_trend_Dro
 
 # 出生数、死亡数の合算
 pop_test4 |>
@@ -172,7 +172,6 @@ pop_SS_f4 |>
                                Du14 -
                                Dm - 
                                Do65 )) ->
-pop_SS_f4
 pop_SS_f4
 
 # 社人研予測との比較
