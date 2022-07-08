@@ -137,14 +137,6 @@ trace_arimaD |>
 
 pop_train2 |>
   model(
-    arima = ARIMA( Death,
-                   ic = "aic",
-                   trace = TRUE,
-                   stepwise = FALSE )) ->
-pop_arimaD_t
-
-pop_train2 |>
-  model(
     arimaD221 = ARIMA( Death ~ 0 + pdq( 2, 2, 1 )),    
     arimaD321 = ARIMA( Death ~ 0 + pdq( 3, 2, 1 )),
     arimaD022 = ARIMA( Death ~ 0 + pdq( 0, 2, 2 )),
@@ -195,7 +187,7 @@ repo |>
   paste0( ipssURL ) |>                    # 読み込むアドレスの編集
   read_csv( show_col_types = FALSE ) |>   # ネット上のファイル読み込み
   as_tsibble( index = Year ) ->           # ＴＳＩＢＢＬＥライブラリに変換
-  ipss_test
+ipss_test
 
 pop_arima_f2[ 2:6, 1:2 ] |>
   inner_join( pop_test2, by = "Year") |>

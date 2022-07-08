@@ -6,7 +6,7 @@
 | 総人口だけ使用 | [ R_ARIMA_1 ](https://colab.research.google.com/drive/11iBGtzEXfOynuyhiYJIXVgo-OojV0B0G?usp=sharing) | [ R_StateSpace_1 ](https://colab.research.google.com/drive/1S1ZznBv9BpDVXPgi6C03jic6BDOGKSCA?usp=sharing) |
 | 人口方程式の導入 | [ R_ARIMA_2 ](https://colab.research.google.com/drive/1EF1ngKafPHpPy1QcZHBZ_8wmvGunLWbK?usp=sharing) | [ R_StateSpace_2 ](https://colab.research.google.com/drive/1Z4oPOJZ_a8RX9ToqlioxeDVu1CbhI1ZW?usp=sharing) |
 | 出生数と死亡率 | [ R_ARIMA_3 ](https://colab.research.google.com/drive/1MZ2XYpcnUZ8Dg7uYU-BEqRQOPy0y7u8r?usp=sharing) | [ R_StateSpace_3 ](https://colab.research.google.com/drive/1gtqBIsD3d4RAmLhStwuO-OLuRNCeMSiO?usp=sharing) |
-| 年齢３区分ごとの死亡率 | [ R_ARIMA_4 ](https://colab.research.google.com/drive/1QphFr9OsyonZQlRDjsa0rYdg8BUGI3N9?usp=sharing) ||
+| 年齢３区分ごとの死亡率 | [ R_ARIMA_4 ](https://colab.research.google.com/drive/1QphFr9OsyonZQlRDjsa0rYdg8BUGI3N9?usp=sharing) | [ R_StateSpace_4 ](https://colab.research.google.com/drive/1RWv6l-nqpU4lqMMpbG1D-Sof-95_H5jg?usp=sharing) |
 
 # Ｐｙｔｈｏｎによる推計
 | モデル | ＡＲＩＭＡ | 状態空間 |
