@@ -159,23 +159,19 @@ pop_test2 |>
 
 # 出生数、死亡数の合算
 pop_test2 |>
-  rename( "forecast_BD" = Total ) ->
+  select( Year, "lt" = Total ) ->
 pop_arima_f2
 
-pop_arimaB_f |>
-  as.data.frame() |>
-  filter( .model == "arimaB510" ) |>
-  select( .mean ) ->
-pop_arima_f2[, 3 ]
-
-pop_arimaD_f |>
-  as.data.frame() |>
-  filter( .model == "arimaD221" ) |>
-  select( .mean ) ->
-pop_arima_f2[, 4 ]
-
 pop_arima_f2 |>
-  mutate( forecast_BD = lag( forecast_BD + Birth - Death )) ->
+  mutate( {pop_arimaB_f |>
+      as.data.frame() |>
+      filter( .model == "arimaB510" ) |>
+      select( "Birth" = .mean )}) |>
+  mutate( {pop_arimaD_f |>
+      as.data.frame() |>
+      filter( .model == "arimaD221" ) |>
+      select( "Death" = .mean )}) |>
+  mutate( forecast_BD = lag( lt + Birth - Death )) ->
 pop_arima_f2
 
 # 社人研予測との比較
@@ -189,7 +185,7 @@ repo |>
   as_tsibble( index = Year ) ->           # ＴＳＩＢＢＬＥライブラリに変換
 ipss_test
 
-pop_arima_f2[ 2:6, 1:2 ] |>
+pop_arima_f2 |>
   inner_join( pop_test2, by = "Year") |>
   inner_join( ipss_test, by = "Year") |>
   select( Year,

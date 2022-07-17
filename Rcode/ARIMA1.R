@@ -15,49 +15,42 @@ popURL =
 
 # ライブラリの読み込み
 library( readr )
-library( fable )
 
 repo |>
   paste0( popURL ) |>                     # 読み込むアドレスの編集
-  read_csv( show_col_types = FALSE ) |>   # ネット上のファイル読み込み
-  as_tsibble( index = Year ) ->           # ＴＳＩＢＢＬＥライブラリに変換
-pop_tsibble
+  read_csv( show_col_types = FALSE ) ->   # ネット上のファイル読み込み
+pop_df
 
 # ライブラリの読み込み
 library( ggplot2 )
 
 # 総人口のグラフ
-pop_tsibble |>
-  autoplot( Total )
-
-# ライブラリの読み込み
-library( feasts )
+pop_df |>
+  ggplot( aes( x = Year,
+               y = Total )) +
+  geom_line()
 
 # 自己相関のグラフ
-pop_tsibble |>
-  ACF( Total ) |>
-  autoplot()
+pop_df$Total |>
+  acf()
 
 # 偏自己相関のグラフ
-pop_tsibble |>
-  PACF( Total ) |>
-  autoplot()
-
-pop_tsibble |>
-  model(STL( Total ~ season( window = Inf ))) |>
-  components() |>
-  autoplot()
+pop_df$Total |>
+  pacf() 
 
 # 学習データと予測データ
 prow_test = 5
-prow_train = nrow( pop_tsibble ) - prow_test
 
-pop_tsibble |>
+pop_df |>
   tail( n = prow_test ) ->
 pop_test
 
-pop_tsibble |>
-  head( n = prow_train ) ->
+# ライブラリの読み込み
+library( fable )
+
+pop_df |>
+  head( n = { nrow( pop_df ) - prow_test }) |>
+  as_tsibble( index = Year ) -> 
 pop_train
 
 # ライブラリの読み込み
@@ -106,8 +99,7 @@ ipssURL =
 
 repo |>
   paste0( ipssURL ) |>                    # 読み込むアドレスの編集
-  read_csv( show_col_types = FALSE ) |>   # ネット上のファイル読み込み
-  as_tsibble( index = Year ) ->           # ＴＳＩＢＢＬＥライブラリに変換
+  read_csv( show_col_types = FALSE ) ->   # ネット上のファイル読み込み
 ipss_test
 
 pop_arima_f |>
@@ -145,8 +137,3 @@ join_test |>
                group = variable )) +
   geom_line() +
   geom_point()
-
-pop_arima_f |>
-  filter( .model == "arima221" ) |>
-  autoplot() +
-  autolayer( pop_test )
